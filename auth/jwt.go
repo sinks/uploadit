@@ -12,6 +12,10 @@ const (
 	SECRET = "secret"
 )
 
+var (
+	HeaderHS256 = Header{Alg: "HS256", Typ: "JWT"}
+)
+
 type Header struct {
 	Alg string `json:"alg"`
 	Typ string `json:"typ"`
@@ -41,6 +45,5 @@ func MarshalJWT(payload interface{}) (JWT, error) {
 	if err != nil {
 		return JWT{}, err
 	}
-	header := Header{Alg: "HS256", Typ: "JWT"}
-	return JWT{Header: header, Payload: payloadJSON}, nil
+	return JWT{Header: HeaderHS256, Payload: payloadJSON}, nil
 }

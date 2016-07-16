@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/julienschmidt/httprouter"
+	"github.com/sinks/uploadit/auth"
 	"github.com/sinks/uploadit/response"
 	"github.com/twinj/uuid"
 	"net/http"
@@ -26,6 +27,7 @@ func main() {
 	router := httprouter.New()
 	router.POST("/uploads/:id", handleNewUpload)
 	router.POST("/token", handleTokenGeneration)
+	router.POST("/login", auth.HandleLogin)
 	http.ListenAndServe(":8080", router)
 }
 
