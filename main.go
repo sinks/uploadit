@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/julienschmidt/httprouter"
 	"github.com/sinks/uploadit/auth"
@@ -24,21 +23,13 @@ func main() {
 	uuid.Init()
 	Tokens.Init()
 	go UploadSweeper()
-	router := httprouter.New()
-	router.POST("/uploads/:id", handleNewUpload)
-	router.POST("/token", handleTokenGeneration)
-	router.POST("/login", auth.HandleLogin)
-	http.ListenAndServe(":8080", router)
-}
-
-func errHandleFunc(w http.ResponseWriter, r *http.Request, response response.ErrorResponse) {
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(response.Status)
-	encErr := json.NewEncoder(w).Encode(response)
-	if encErr != nil {
-		http.Error(w, encErr.Error(), http.StatusInternalServerError)
-	}
-	return
+	routerUploads := httprouter.New()
+	routerUploads.POST("/uploads/:id", handleNewUpload)
+	routerUploads.POST("/token", handleTokenGeneration)
+	go http.ListenAndServe(":8080", routerUploads)
+	routerLogin := httprouter.New()
+	routerLogin.POST("/login", auth.HandleLogin)
+	http.ListenAndServe(":8081", routerLogin)
 }
 
 func checkToken(r *http.Request, p httprouter.Params) (uuid.Uuid, error) {
@@ -61,18 +52,18 @@ func checkAuth(r *http.Request, p httprouter.Params) error {
 func handleNewUpload(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	err := checkAuth(r, p)
 	if err != nil {
-		errHandleFunc(w, r, response.UnauthorizedRequest)
+		response.ErrHandleFunc(w, r, response.UnauthorizedRequest)
 		return
 	}
 	uploadId, err := checkToken(r, p)
 	if err != nil {
-		errHandleFunc(w, r, response.BadRequest)
+		response.ErrHandleFunc(w, r, response.BadRequest)
 		return
 	}
 	u := Upload{Id: uploadId}
 	err = u.Handle(w, r)
 	if err != nil {
-		errHandleFunc(w, r, response.BadRequest)
+		response.ErrHandleFunc(w, r, response.BadRequest)
 		return
 	}
 }

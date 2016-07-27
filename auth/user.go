@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"github.com/julienschmidt/httprouter"
+	"github.com/sinks/uploadit/response"
 	"net/http"
 )
 
@@ -44,8 +45,10 @@ func HandleLogin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	username, password, _ := r.BasicAuth()
 	if user, ok := verify(username, password); ok {
 		token, _ := MarshalJWT(user)
-		response := LoginResponse{Token: token.Encode()}
+		response := LoginResponse{Token: token.Encode("secret")}
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
+		return
 	}
+	response.ErrHandleFunc(w, r, response.UnauthorizedRequest)
 }

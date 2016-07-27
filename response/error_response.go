@@ -1,6 +1,7 @@
 package response
 
 import (
+	"encoding/json"
 	"net/http"
 )
 
@@ -16,4 +17,14 @@ type ErrorResponse struct {
 
 func (er ErrorResponse) Error() string {
 	return er.Message
+}
+
+func ErrHandleFunc(w http.ResponseWriter, r *http.Request, response ErrorResponse) {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(response.Status)
+	encErr := json.NewEncoder(w).Encode(response)
+	if encErr != nil {
+		http.Error(w, encErr.Error(), http.StatusInternalServerError)
+	}
+	return
 }
