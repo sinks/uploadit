@@ -15,6 +15,7 @@ var (
 	Logins = []Login{
 		Login{Identity: "lincoln", Password: "abc123", User: Users[0]},
 	}
+	tokenizer = TokenHS256("secret")
 )
 
 type User struct {
@@ -44,8 +45,8 @@ type LoginResponse struct {
 func HandleLogin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	username, password, _ := r.BasicAuth()
 	if user, ok := verify(username, password); ok {
-		token, _ := MarshalJWT(user)
-		response := LoginResponse{Token: token.Encode("secret")}
+		token := tokenizer.EncodeToString(user)
+		response := LoginResponse{Token: token}
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 		return
