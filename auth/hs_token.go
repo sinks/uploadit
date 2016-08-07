@@ -56,19 +56,20 @@ func (hst HSToken) Verify(token []byte) bool {
 // EncodeToString takes an interface that can be
 // marshalled to json.
 // It returns a JWS token.
-func (hst HSToken) EncodeToString(payload interface{}) string {
+func (hst HSToken) Encode(payload interface{}) (string, error) {
 	headerBytes, err := json.Marshal(hst.header)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	headerBase64 := base64.RawStdEncoding.EncodeToString(headerBytes)
 	payloadBase64 := base64.RawStdEncoding.EncodeToString(payloadBytes)
 	signatureBase64 := base64.RawStdEncoding.EncodeToString(hst.signature(headerBase64, payloadBase64))
-	return fmt.Sprintf("%s.%s.%s", headerBase64, payloadBase64, signatureBase64)
+	token := fmt.Sprintf("%s.%s.%s", headerBase64, payloadBase64, signatureBase64)
+	return token, nil
 }
 
 func (hst HSToken) signature(header string, payload string) []byte {

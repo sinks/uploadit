@@ -17,7 +17,7 @@ func TestHS256EncodeToString(t *testing.T) {
 	AdminToken := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ"
 	payload := TestJSONMarshal{Sub: "1234567890", Name: "John Doe", Admin: true}
 	tokenizer := TokenHS256("secret")
-	encode := tokenizer.EncodeToString(payload)
+	encode, _ := tokenizer.Encode(payload)
 	if encode != AdminToken {
 		t.Error("Encodeing is invalid", encode)
 	}

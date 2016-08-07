@@ -2,7 +2,7 @@ package auth
 
 type Token interface {
 	Verify(token []byte) bool
-	EncodeToString(payload interface{}) string
+	Encode(payload interface{}) (string, error)
 }
 
 type Header struct {

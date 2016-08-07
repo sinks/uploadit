@@ -45,8 +45,12 @@ type LoginResponse struct {
 func HandleLogin(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	username, password, _ := r.BasicAuth()
 	if user, ok := verify(username, password); ok {
-		token := tokenizer.EncodeToString(user)
-		response := LoginResponse{Token: token}
+		token, err := tokenizer.Encode(user)
+		if err != nil {
+			response.ErrHandleFunc(w, r, response.UnauthorizedRequest)
+			return
+		}
+		response := LoginResponse{Token: string(token)}
 		w.Header().Add("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 		return

@@ -41,23 +41,23 @@ func (rst RSToken) Verify(token []byte) bool {
 	return false
 }
 
-func (rst RSToken) EncodeToString(payload interface{}) string {
+func (rst RSToken) Encode(payload interface{}) (string, error) {
 	headerBytes, err := json.Marshal(rst.header)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	headerBase64 := base64.RawStdEncoding.EncodeToString(headerBytes)
 	payloadBase64 := base64.RawStdEncoding.EncodeToString(payloadBytes)
 	signature, err := rst.signature(headerBase64, payloadBase64)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	signatureBase64 := base64.RawStdEncoding.EncodeToString(signature)
-	return fmt.Sprintf("%s.%s.%s", headerBase64, payloadBase64, signatureBase64)
+	return fmt.Sprintf("%s.%s.%s", headerBase64, payloadBase64, signatureBase64), nil
 }
 
 func (rst RSToken) signature(header string, payload string) ([]byte, error) {
