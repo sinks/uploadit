@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -36,7 +37,19 @@ func TokenRS256(priv rsa.PrivateKey) Token {
 }
 
 func (rst RSToken) Verify(token []byte) bool {
-	return false
+	parts := bytes.Split(token, []byte("."))
+	if len(parts) != 3 {
+		return false
+	}
+	header := string(parts[0])
+	payload := string(parts[1])
+	signature := string(parts[2])
+	computedSignature, err := rst.signature(header, payload)
+	if err != nil {
+		return false
+	}
+	signatureComputedBase64 := base64.RawURLEncoding.EncodeToString(computedSignature)
+	return signature == signatureComputedBase64
 }
 
 func (rst RSToken) Encode(payload interface{}) (string, error) {
