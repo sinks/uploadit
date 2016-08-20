@@ -4,11 +4,11 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
-	"hash"
 	"io"
 )
 
@@ -22,18 +22,16 @@ var (
 )
 
 type RSToken struct {
-	header      Header
-	hashingFunc func() hash.Hash
-	hash        crypto.Hash
-	priv        rsa.PrivateKey
+	header Header
+	hash   crypto.Hash
+	priv   rsa.PrivateKey
 }
 
 func TokenRS256(priv rsa.PrivateKey) Token {
 	return RSToken{
-		header:      HeaderRS256,
-		hashingFunc: sha256.New,
-		hash:        crypto.SHA256,
-		priv:        priv,
+		header: HeaderRS256,
+		hash:   crypto.SHA256,
+		priv:   priv,
 	}
 }
 
@@ -50,23 +48,37 @@ func (rst RSToken) Encode(payload interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	headerBase64 := base64.RawStdEncoding.EncodeToString(headerBytes)
-	payloadBase64 := base64.RawStdEncoding.EncodeToString(payloadBytes)
+	headerBase64 := base64.RawURLEncoding.EncodeToString(headerBytes)
+	payloadBase64 := base64.RawURLEncoding.EncodeToString(payloadBytes)
 	signature, err := rst.signature(headerBase64, payloadBase64)
 	if err != nil {
 		return "", err
 	}
-	signatureBase64 := base64.RawStdEncoding.EncodeToString(signature)
+	signatureBase64 := base64.RawURLEncoding.EncodeToString(signature)
 	return fmt.Sprintf("%s.%s.%s", headerBase64, payloadBase64, signatureBase64), nil
 }
 
 func (rst RSToken) signature(header string, payload string) ([]byte, error) {
-	hash := rst.hashingFunc()
-	io.WriteString(hash, fmt.Sprintf("%s.%s", header, payload))
-	content := hash.Sum(nil)
+	hashInstance := rst.hash.New()
+	io.WriteString(hashInstance, fmt.Sprintf("%s.%s", header, payload))
+	content := hashInstance.Sum(nil)
 	signature, err := rsa.SignPKCS1v15(rng, &rst.priv, rst.hash, content)
 	if err != nil {
 		return nil, err
 	}
 	return signature, nil
+}
+
+func LoadFromPublicPem(block []byte) *rsa.PublicKey {
+	b, _ := pem.Decode(block)
+	var cert *x509.Certificate
+	cert, _ = x509.ParseCertificate(b.Bytes)
+	rsaPublicKey := cert.PublicKey.(*rsa.PublicKey)
+	return rsaPublicKey
+}
+
+func LoadFromPrivatePem(block []byte) *rsa.PrivateKey {
+	b, _ := pem.Decode(block)
+	cert, _ := x509.ParsePKCS1PrivateKey(b.Bytes)
+	return cert
 }

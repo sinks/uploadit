@@ -18,24 +18,24 @@ var (
 )
 
 type HSToken struct {
-	header      Header
-	hashingFunc func() hash.Hash
-	secret      string
+	header Header
+	hash   hash.Hash
+	secret string
 }
 
 func TokenHS256(secret string) Token {
 	return HSToken{
-		header:      HeaderHS256,
-		hashingFunc: sha256.New,
-		secret:      secret,
+		header: HeaderHS256,
+		hash:   hmac.New(sha256.New, []byte(secret)),
+		secret: secret,
 	}
 }
 
 func TokenHS512(secret string) Token {
 	return HSToken{
-		header:      HeaderHS512,
-		hashingFunc: sha512.New,
-		secret:      secret,
+		header: HeaderHS512,
+		hash:   hmac.New(sha512.New, []byte(secret)),
+		secret: secret,
 	}
 }
 
@@ -65,15 +65,17 @@ func (hst HSToken) Encode(payload interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	headerBase64 := base64.RawStdEncoding.EncodeToString(headerBytes)
-	payloadBase64 := base64.RawStdEncoding.EncodeToString(payloadBytes)
-	signatureBase64 := base64.RawStdEncoding.EncodeToString(hst.signature(headerBase64, payloadBase64))
-	token := fmt.Sprintf("%s.%s.%s", headerBase64, payloadBase64, signatureBase64)
-	return token, nil
+	headerBase64 := base64.RawURLEncoding.EncodeToString(headerBytes)
+	payloadBase64 := base64.RawURLEncoding.EncodeToString(payloadBytes)
+	return fmt.Sprintf("%s.%s.%s",
+		headerBase64,
+		payloadBase64,
+		base64.RawURLEncoding.EncodeToString(hst.signature(headerBase64, payloadBase64)),
+	), nil
 }
 
 func (hst HSToken) signature(header string, payload string) []byte {
-	hash := hmac.New(hst.hashingFunc, []byte(hst.secret))
-	io.WriteString(hash, fmt.Sprintf("%s.%s", header, payload))
-	return hash.Sum(nil)
+	hst.hash.Reset()
+	io.WriteString(hst.hash, fmt.Sprintf("%s.%s", header, payload))
+	return hst.hash.Sum(nil)
 }
